@@ -1,10 +1,12 @@
 package com.mhm_corp.APIGateway.service;
 
+import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
@@ -17,6 +19,16 @@ public class FallBackService {
     private ResponseEntity<String> handleException(Exception e, String operation) {
         if (e instanceof ResourceAccessException) {
             return createServiceUnavailableResponse(e, operation);
+        }
+
+        if (e instanceof HttpClientErrorException clientError) {
+            String message = clientError.getMessage();
+            int colonIndex = message.indexOf(": ");
+            if (colonIndex != -1 && colonIndex + 2 < message.length()) {
+                String errorJson = message.substring(colonIndex + 2);
+                return ResponseEntity.status(clientError.getStatusCode()).body(errorJson);
+            }
+            return ResponseEntity.status(clientError.getStatusCode()).body(clientError.getResponseBodyAsString());
         }
 
         if (e instanceof HttpServerErrorException serverError) {
@@ -39,8 +51,8 @@ public class FallBackService {
     }
 
 
-    public ResponseEntity<String> registerUser(Exception e) {
-        return handleException(e, "user registration");
+    public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint, Exception e) {
+        return handleException(e, endpoint);
     }
 
     public ResponseEntity<String> loginUser(Exception e) {

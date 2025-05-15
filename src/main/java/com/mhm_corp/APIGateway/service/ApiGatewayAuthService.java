@@ -53,13 +53,13 @@ public class ApiGatewayAuthService {
                 .body(response.getBody());
     }
 
-    @CircuitBreaker(name = "cb_registerUser", fallbackMethod = "registerUserFallback")
-    public ResponseEntity<String> registerUser(UserInformation userInformation, String endpoint) {
+    @CircuitBreaker(name = "cb_userRegistration", fallbackMethod = "userRegistrationFallback")
+    public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint) {
         return executeRequest(userInformation, endpoint, String.class, HttpMethod.POST);
     }
 
-    private ResponseEntity<String> registerUserFallback(Exception e) {
-        return fallBackService.registerUser(e);
+    private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
+        return fallBackService.userRegistration(userInformation,endpoint,e);
     }
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
@@ -67,10 +67,8 @@ public class ApiGatewayAuthService {
         ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST);
 
         HttpHeaders headers = authResponse.getHeaders();
-        if (headers != null && headers.containsKey(HttpHeaders.SET_COOKIE)) {
-            headers.get(HttpHeaders.SET_COOKIE)
-                    .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
-        }
+        headers.getOrEmpty(HttpHeaders.SET_COOKIE)
+                .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
 
         return authResponse;
     }

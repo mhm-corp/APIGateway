@@ -39,8 +39,8 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "409", description = "User already exists"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<String> registerUser(@RequestBody UserInformation userInformation) {
-        return apiGatewayAuthService.registerUser(userInformation, "/register");
+    public ResponseEntity<String> userRegistration(@RequestBody UserInformation userInformation) {
+        return apiGatewayAuthService.userRegistration(userInformation, "/register");
     }
 
     @PostMapping("/login")
