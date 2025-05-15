@@ -40,7 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/gateway/register").permitAll()
                         .requestMatchers("/api/gateway/login").permitAll()
-                        .requestMatchers("/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/gateway/refresh").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> {
