@@ -1,6 +1,8 @@
 package com.mhm_corp.APIGateway.service;
 
+import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -11,8 +13,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
 @Service
-public class FallBackService {
-    private static final Logger logger = LoggerFactory.getLogger(FallBackService.class);
+public class FallBackAuthService {
+    private static final Logger logger = LoggerFactory.getLogger(FallBackAuthService.class);
 
     private static final String SERVICE_UNAVAILABLE_MESSAGE = "The %s service is currently unavailable. Please try again later.";
 
@@ -55,11 +57,12 @@ public class FallBackService {
         return handleException(e, endpoint);
     }
 
-    public ResponseEntity<String> loginUser(Exception e) {
-        return handleException(e, "login");
+    public ResponseEntity<String> loginUser(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {
+        return handleException(e, endpoint);
     }
 
 
-
-
+    public ResponseEntity<String> getUserInformation(String username, String endpoint, Exception e) {
+        return handleException(e, endpoint);
+    }
 }

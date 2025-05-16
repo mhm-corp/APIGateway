@@ -2,6 +2,7 @@ package com.mhm_corp.APIGateway.service;
 
 
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
+import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,11 +20,11 @@ public class ApiGatewayAuthService {
     private String authServiceUrl;
 
     private final RestTemplate restTemplate;
-    private final FallBackService fallBackService;
+    private final FallBackAuthService fallBackAuthService;
 
-    public ApiGatewayAuthService(RestTemplate restTemplate, FallBackService fallBackService) {
+    public ApiGatewayAuthService(RestTemplate restTemplate, FallBackAuthService fallBackAuthService) {
         this.restTemplate = restTemplate;
-        this.fallBackService = fallBackService;
+        this.fallBackAuthService = fallBackAuthService;
     }
 
     private <T, R> ResponseEntity<R> executeRequest(T request, String endpoint, Class<R> responseType, HttpMethod method) {
@@ -59,7 +60,7 @@ public class ApiGatewayAuthService {
     }
 
     private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
-        return fallBackService.userRegistration(userInformation,endpoint,e);
+        return fallBackAuthService.userRegistration(userInformation,endpoint,e);
     }
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
@@ -73,9 +74,25 @@ public class ApiGatewayAuthService {
         return authResponse;
     }
 
-    private ResponseEntity<String> loginUserFallback(Exception e) {
-        return fallBackService.loginUser(e);
+    private ResponseEntity<String> loginUserFallback(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {
+        return fallBackAuthService.loginUser(loginRequest,response,endpoint,e);
     }
 
+    @CircuitBreaker(name = "cb_getUserInformation", fallbackMethod = "getUserInformationFallback")
+    public ResponseEntity<UserData> getUserInformation(String username, String endpoint) {
+        String url = authServiceUrl + endpoint + "?username=" + username;
+        HttpEntity<Void> requestEntity = new HttpEntity<>(createHeaders());
+
+        return restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                requestEntity,
+                UserData.class
+        );
+    }
+
+    private ResponseEntity<String> getUserInformationFallback(String username, String endpoint, Exception e) {
+        return fallBackAuthService.getUserInformation(username, endpoint, e);
+    }
 
 }

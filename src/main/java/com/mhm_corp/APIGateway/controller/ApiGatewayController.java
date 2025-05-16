@@ -2,8 +2,10 @@ package com.mhm_corp.APIGateway.controller;
 
 
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
+import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
 import com.mhm_corp.APIGateway.service.ApiGatewayAuthService;
+import com.mhm_corp.APIGateway.service.external.KeycloakService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -11,11 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/gateway")
@@ -26,9 +28,11 @@ public class ApiGatewayController {
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayController.class);
 
     private final ApiGatewayAuthService apiGatewayAuthService;
+    private final KeycloakService keycloakService;
 
-    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService) {
+    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService) {
         this.apiGatewayAuthService = apiGatewayAuthService;
+        this.keycloakService = keycloakService;
     }
 
     @PostMapping("/register")
@@ -55,5 +59,26 @@ public class ApiGatewayController {
         return apiGatewayAuthService.loginUser(loginRequest, response, "/login");
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Get the logged-in user's information by username or email")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized or token expired"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<UserData> getUserInformation(
+            @CookieValue(value = "accessToken", required = false) String accessToken) {
+        if (accessToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!keycloakService.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        return apiGatewayAuthService.getUserInformation(username, "/me");
+    }
 
 }
