@@ -67,11 +67,23 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<UserData> getUserInformation(
-            @CookieValue(value = "accessToken", required = false) String accessToken) {
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+
         if (accessToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
         if (!keycloakService.validateToken(accessToken)) {
+            if (refreshToken != null) {
+                ResponseEntity<Void> refreshResponse = refreshTokenResponse(accessToken, refreshToken, response);
+                if (refreshResponse.getStatusCode() == HttpStatus.OK) {
+                    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                    String username = authentication.getName();
+                    return apiGatewayAuthService.getUserInformation(username, "/me");
+                }
+            }
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -81,4 +93,21 @@ public class ApiGatewayController {
         return apiGatewayAuthService.getUserInformation(username, "/me");
     }
 
+    @PostMapping("/refresh")
+    @Operation(summary = "Use the refresh token when the token has expired")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid refresh token"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Void> refreshTokenResponse(
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        if (refreshToken == null || accessToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return apiGatewayAuthService.refreshTokenResponse (accessToken, refreshToken, response, "/refresh");
+    }
 }

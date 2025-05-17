@@ -13,6 +13,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class ApiGatewayAuthService {
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAuthService.class);
@@ -79,7 +82,7 @@ public class ApiGatewayAuthService {
     }
 
     @CircuitBreaker(name = "cb_getUserInformation", fallbackMethod = "getUserInformationFallback")
-    public ResponseEntity<UserData> getUserInformation(String username, String endpoint) {
+    public ResponseEntity<UserData> getUserInformation(String username,String endpoint) {
         String url = authServiceUrl + endpoint + "?username=" + username;
         HttpEntity<Void> requestEntity = new HttpEntity<>(createHeaders());
 
@@ -95,4 +98,34 @@ public class ApiGatewayAuthService {
         return fallBackAuthService.getUserInformation(username, endpoint, e);
     }
 
+    @CircuitBreaker(name = "cb_refreshTokenResponse", fallbackMethod = "refreshTokenResponseFallback")
+    public ResponseEntity<Void> refreshTokenResponse(String accessToken, String refreshToken,
+                                                     HttpServletResponse response, String endpoint) {
+        HttpHeaders headers = createHeaders();
+
+        Map<String, String> tokenBody = new HashMap<>();
+        tokenBody.put("accessToken", accessToken);
+        tokenBody.put("refreshToken", refreshToken);
+
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(tokenBody, headers);
+
+        ResponseEntity<Void> authResponse = restTemplate.exchange(
+                authServiceUrl + endpoint,
+                HttpMethod.POST,
+                requestEntity,
+                Void.class
+        );
+
+        HttpHeaders responseHeaders = authResponse.getHeaders();
+        responseHeaders.getOrEmpty(HttpHeaders.SET_COOKIE)
+                .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
+
+        return authResponse;
+    }
+
+    private ResponseEntity<String> refreshTokenResponseFallback(
+            String accessToken, String refreshToken,
+            HttpServletResponse response, String endpoint, Exception e) {
+        return fallBackAuthService.refreshTokenResponse(accessToken, refreshToken, response, endpoint, e);
+    }
 }

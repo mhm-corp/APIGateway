@@ -65,4 +65,8 @@ public class FallBackAuthService {
     public ResponseEntity<String> getUserInformation(String username, String endpoint, Exception e) {
         return handleException(e, endpoint);
     }
+
+    public ResponseEntity<String> refreshTokenResponse(String accessToken, String refreshToken, HttpServletResponse response, String endpoint, Exception e) {
+        return handleException(e, endpoint);
+    }
 }
