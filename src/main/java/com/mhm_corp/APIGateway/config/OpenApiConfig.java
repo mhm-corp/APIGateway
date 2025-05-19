@@ -13,8 +13,8 @@ public class OpenApiConfig {
     public OpenAPI openAPI(Environment environment) {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Authentication Service API")
-                        .description("Microservice for Authentication and Authorization")
+                        .title("API Gateway Service")
+                        .description("Microservice that functions as an API gateway")
                         .version("1.0.0"));
     }
 
