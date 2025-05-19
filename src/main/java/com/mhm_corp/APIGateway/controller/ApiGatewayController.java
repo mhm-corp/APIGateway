@@ -64,7 +64,8 @@ public class ApiGatewayController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized or token expired"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<UserData> getUserInformation(
             @CookieValue(value = "accessToken", required = false) String accessToken,
