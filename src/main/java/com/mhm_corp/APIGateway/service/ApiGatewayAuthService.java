@@ -4,6 +4,7 @@ package com.mhm_corp.APIGateway.service;
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
+import com.mhm_corp.APIGateway.service.fallback.FallBackAuthService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package com.mhm_corp.APIGateway.service;
+package com.mhm_corp.APIGateway.service.fallback;
 
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
@@ -22,46 +22,56 @@ public class FallBackAuthService {
 
     private ResponseEntity<String> handleException(Exception e, String operation) {
         if (e instanceof ResourceAccessException) {
-            String message = e.getMessage();
-            if (message != null && message.contains(CONNECTION_ERROR_KEYCLOAK)) {
-                logger.error("Keycloak token endpoint error: {}", message);
-                return ResponseEntity
-                        .status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(KEYCLOAK_ERROR_MESSAGE);
-            }
-            return createServiceUnavailableResponse(e, operation);
+            return handleResourceAccessException((ResourceAccessException) e, operation);
         }
-
         if (e instanceof HttpClientErrorException clientError) {
-            String message = clientError.getMessage();
-            if (message.contains(CONNECTION_ERROR_KEYCLOAK)) {
-                return ResponseEntity
-                        .status(clientError.getStatusCode())
-                        .body(KEYCLOAK_ERROR_MESSAGE);
-            }
-            int colonIndex = message.indexOf(": ");
-            if (colonIndex != -1 && colonIndex + 2 < message.length()) {
-                String errorJson = message.substring(colonIndex + 2);
-                return ResponseEntity.status(clientError.getStatusCode()).body(errorJson);
-            }
-            return ResponseEntity.status(clientError.getStatusCode()).body(clientError.getResponseBodyAsString());
+            return handleClientError(clientError);
         }
-
         if (e instanceof HttpServerErrorException serverError) {
-            String message = serverError.getResponseBodyAsString();
-            if (message.contains(CONNECTION_ERROR_KEYCLOAK)) {
-                return ResponseEntity
-                        .status(serverError.getStatusCode())
-                        .body(KEYCLOAK_ERROR_MESSAGE);
-            }
-            if (serverError.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
-                return message.contains("401 UNAUTHORIZED")
-                        ? ResponseEntity.status(serverError.getStatusCode()).body("Invalid user credentials")
-                        : ResponseEntity.status(serverError.getStatusCode()).body(message);
-            }
-            return ResponseEntity.status(serverError.getStatusCode()).body(serverError.getResponseBodyAsString());
+            return handleServerError(serverError);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
+
+    private ResponseEntity<String> handleResourceAccessException(ResourceAccessException e, String operation) {
+        String message = e.getMessage();
+        if (message != null && message.contains(CONNECTION_ERROR_KEYCLOAK)) {
+            logger.error("Keycloak token endpoint error: {}", message);
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(KEYCLOAK_ERROR_MESSAGE);
+        }
+        return createServiceUnavailableResponse(e, operation);
+    }
+
+    private ResponseEntity<String> handleClientError(HttpClientErrorException clientError) {
+        String message = clientError.getMessage();
+        if (message.contains(CONNECTION_ERROR_KEYCLOAK)) {
+            return ResponseEntity
+                    .status(clientError.getStatusCode())
+                    .body(KEYCLOAK_ERROR_MESSAGE);
+        }
+        int colonIndex = message.indexOf(": ");
+        if (colonIndex != -1 && colonIndex + 2 < message.length()) {
+            String errorJson = message.substring(colonIndex + 2);
+            return ResponseEntity.status(clientError.getStatusCode()).body(errorJson);
+        }
+        return ResponseEntity.status(clientError.getStatusCode()).body(clientError.getResponseBodyAsString());
+    }
+
+    private ResponseEntity<String> handleServerError(HttpServerErrorException serverError) {
+        String message = serverError.getResponseBodyAsString();
+        if (message.contains(CONNECTION_ERROR_KEYCLOAK)) {
+            return ResponseEntity
+                    .status(serverError.getStatusCode())
+                    .body(KEYCLOAK_ERROR_MESSAGE);
+        }
+        if (serverError.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
+            return message.contains("401 UNAUTHORIZED")
+                    ? ResponseEntity.status(serverError.getStatusCode()).body("Invalid user credentials")
+                    : ResponseEntity.status(serverError.getStatusCode()).body(message);
+        }
+        return ResponseEntity.status(serverError.getStatusCode()).body(serverError.getResponseBodyAsString());
     }
 
     private ResponseEntity<String> createServiceUnavailableResponse(Exception e, String operation) {

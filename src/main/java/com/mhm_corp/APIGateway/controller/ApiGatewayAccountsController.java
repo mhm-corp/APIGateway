@@ -1,0 +1,47 @@
+package com.mhm_corp.APIGateway.controller;
+
+import com.mhm_corp.APIGateway.controller.dto.account.UserAccountInformation;
+import com.mhm_corp.APIGateway.service.AccountsService;
+import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+@RequestMapping("/api/gateway/accounts")
+
+@Tag(name = "The API Gateway Accounts", description = "REST API allow access to accounts")
+public class ApiGatewayAccountsController {
+    private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAccountsController.class);
+    private final AccountsService accountsService;
+    private final ValidateAutTokenService validateAutTokenService;
+
+    public ApiGatewayAccountsController(AccountsService accountsService, ValidateAutTokenService validateAutTokenService) {
+        this.accountsService = accountsService;
+        this.validateAutTokenService = validateAutTokenService;
+    }
+
+
+    @PostMapping
+    @Operation(summary = "Register a user account")
+    public ResponseEntity<String> accountRegistration (
+            @RequestBody UserAccountInformation userAccountInformation,
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response){
+        boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        return (!isValidAuth)
+                ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+                : accountsService.accountRegistration(userAccountInformation);
+    }
+
+}

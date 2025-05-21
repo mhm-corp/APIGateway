@@ -5,6 +5,7 @@ import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
 import com.mhm_corp.APIGateway.service.ApiGatewayAuthService;
+import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
 import com.mhm_corp.APIGateway.service.external.KeycloakService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,15 +25,16 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "The API Gateway", description = "REST API allow access to other services")
 public class ApiGatewayController {
-
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayController.class);
 
     private final ApiGatewayAuthService apiGatewayAuthService;
     private final KeycloakService keycloakService;
+    private final ValidateAutTokenService validateAutTokenService;
 
-    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService) {
+    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService, ValidateAutTokenService validateAutTokenService) {
         this.apiGatewayAuthService = apiGatewayAuthService;
         this.keycloakService = keycloakService;
+        this.validateAutTokenService = validateAutTokenService;
     }
 
     @PostMapping("/register")
@@ -72,25 +74,12 @@ public class ApiGatewayController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
 
-        if (accessToken == null) {
+        boolean isValidToken = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        if (!isValidToken) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        if (!keycloakService.validateToken(accessToken)) {
-            if (refreshToken != null) {
-                ResponseEntity<Void> refreshResponse = refreshTokenResponse(accessToken, refreshToken, response);
-                if (refreshResponse.getStatusCode() == HttpStatus.OK) {
-                    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                    String username = authentication.getName();
-                    return apiGatewayAuthService.getUserInformation(username, "/me");
-                }
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-
         return apiGatewayAuthService.getUserInformation(username, "/me");
     }
 
