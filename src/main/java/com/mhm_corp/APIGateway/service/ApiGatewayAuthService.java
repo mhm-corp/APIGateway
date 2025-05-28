@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class ApiGatewayAuthService {
+public class ApiGatewayAuthService extends CommonService{
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAuthService.class);
     @Value("${auth.service.url}")
     private String authServiceUrl;
@@ -31,36 +31,9 @@ public class ApiGatewayAuthService {
         this.fallBackAuthService = fallBackAuthService;
     }
 
-    private <T, R> ResponseEntity<R> executeRequest(T request, String endpoint, Class<R> responseType, HttpMethod method) {
-        String url = authServiceUrl + endpoint;
-        HttpEntity<T> requestEntity = new HttpEntity<>(request, createHeaders());
-
-        ResponseEntity<R> response = restTemplate.exchange(
-                url,
-                method,
-                requestEntity,
-                responseType
-        );
-
-        return (ResponseEntity<R>) createResponseEntity(response);
-    }
-
-    private HttpHeaders createHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
-    }
-
-    private ResponseEntity<?> createResponseEntity(ResponseEntity<?> response) {
-        return ResponseEntity
-                .status(response.getStatusCode())
-                .headers(response.getHeaders())
-                .body(response.getBody());
-    }
-
     @CircuitBreaker(name = "cb_userRegistration", fallbackMethod = "userRegistrationFallback")
     public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint) {
-        return executeRequest(userInformation, endpoint, String.class, HttpMethod.POST);
+        return executeRequest(userInformation, endpoint, String.class, HttpMethod.POST, authServiceUrl, restTemplate);
     }
 
     private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
@@ -69,7 +42,7 @@ public class ApiGatewayAuthService {
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
     public ResponseEntity<Void> loginUser(LoginRequest loginRequest, HttpServletResponse response, String endpoint) {
-        ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST);
+        ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST, authServiceUrl, restTemplate);
 
         HttpHeaders headers = authResponse.getHeaders();
         headers.getOrEmpty(HttpHeaders.SET_COOKIE)

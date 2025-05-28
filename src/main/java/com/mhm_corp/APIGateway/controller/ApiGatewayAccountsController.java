@@ -1,6 +1,6 @@
 package com.mhm_corp.APIGateway.controller;
 
-import com.mhm_corp.APIGateway.controller.dto.account.UserAccountInformation;
+import com.mhm_corp.APIGateway.controller.dto.account.AccountInputInformation;
 import com.mhm_corp.APIGateway.service.AccountsService;
 import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,14 +34,14 @@ public class ApiGatewayAccountsController {
     @PostMapping
     @Operation(summary = "Register a user account")
     public ResponseEntity<String> accountRegistration (
-            @RequestBody UserAccountInformation userAccountInformation,
+            @RequestBody AccountInputInformation accountInputInformation,
             @CookieValue(value = "accessToken", required = false) String accessToken,
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response){
         boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
         return (!isValidAuth)
                 ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-                : accountsService.accountRegistration(userAccountInformation);
+                : accountsService.accountRegistration(accountInputInformation,"");
     }
 
 }
