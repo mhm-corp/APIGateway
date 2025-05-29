@@ -27,4 +27,8 @@ public class FallBackAccountsService {
     public ResponseEntity<String> accountRegistration(AccountInputInformation accountInputInformation, String endpoint, Exception e) {
         return handleException(e, endpoint);
     }
+
+    public ResponseEntity<String> getAccountByAccountNumber(String accountNumber, String endpoint, Exception e) {
+        return handleException(e, endpoint);
+    }
 }

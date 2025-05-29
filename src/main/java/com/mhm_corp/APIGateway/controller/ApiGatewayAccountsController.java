@@ -1,9 +1,12 @@
 package com.mhm_corp.APIGateway.controller;
 
+import com.mhm_corp.APIGateway.controller.dto.account.AccountInformationByNumber;
 import com.mhm_corp.APIGateway.controller.dto.account.AccountInputInformation;
 import com.mhm_corp.APIGateway.service.AccountsService;
 import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -11,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequestMapping("/api/gateway/accounts")
@@ -42,6 +42,26 @@ public class ApiGatewayAccountsController {
         return (!isValidAuth)
                 ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
                 : accountsService.accountRegistration(accountInputInformation,"");
+    }
+
+
+    @GetMapping("/{accountNumber}")
+    @Operation(summary = "Get account details by account number")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account details retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid account number format"),
+            @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    public ResponseEntity<AccountInformationByNumber> getAccountByAccountNumber(
+            @PathVariable String accountNumber,
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+
+        boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        return (!isValidAuth)
+                ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+                : accountsService.getAccountByAccountNumber(accountNumber,"");
     }
 
 }
