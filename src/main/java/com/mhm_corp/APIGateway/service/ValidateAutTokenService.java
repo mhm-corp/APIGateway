@@ -21,12 +21,22 @@ public class ValidateAutTokenService {
 
     public boolean validateAuthenticationWithToken(
             String accessToken, String refreshToken, HttpServletResponse response) {
-        if (accessToken == null || refreshToken == null)  return false;
+        logger.debug("Starting token validation process");
+        if (accessToken == null || refreshToken == null) {
+            logger.warn("Missing access token or refresh token");
+            return false;
+        }
 
-        if (keycloakService.validateToken(accessToken)) return true;
+        if (keycloakService.validateToken(accessToken)) {
+            logger.info("Access token is valid");
+            return true;
+        }
 
+        logger.info("Access token expired, attempting token refresh");
         ResponseEntity<Void> refreshResponse = apiGatewayAuthService.refreshTokenResponse(
                 accessToken, refreshToken, response, "/refresh");
-        return refreshResponse.getStatusCode() == HttpStatus.OK;
+        boolean isValid = refreshResponse.getStatusCode() == HttpStatus.OK;
+        logger.info("Token refresh completed. Success: {}", isValid);
+        return isValid;
     }
 }

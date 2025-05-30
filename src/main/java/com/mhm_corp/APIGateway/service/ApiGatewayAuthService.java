@@ -33,7 +33,15 @@ public class ApiGatewayAuthService extends CommonService{
 
     @CircuitBreaker(name = "cb_userRegistration", fallbackMethod = "userRegistrationFallback")
     public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint) {
-        return executeRequest(userInformation, endpoint, String.class, HttpMethod.POST, authServiceUrl, restTemplate);
+        logger.debug("Attempting to register user with endpoint: {}", endpoint);
+        try {
+            ResponseEntity<String> response = executeRequest(userInformation, endpoint, String.class, HttpMethod.POST, authServiceUrl, restTemplate);
+            logger.info("User registration successful for username: {}", userInformation.username());
+            return response;
+        } catch (Exception e) {
+            logger.error("Error during user registration: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
@@ -42,13 +50,20 @@ public class ApiGatewayAuthService extends CommonService{
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
     public ResponseEntity<Void> loginUser(LoginRequest loginRequest, HttpServletResponse response, String endpoint) {
-        ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST, authServiceUrl, restTemplate);
+        logger.debug("Processing login request at endpoint: {}", endpoint);
+        try {
+            ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST, authServiceUrl, restTemplate);
 
-        HttpHeaders headers = authResponse.getHeaders();
-        headers.getOrEmpty(HttpHeaders.SET_COOKIE)
-                .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
+            HttpHeaders headers = authResponse.getHeaders();
+            headers.getOrEmpty(HttpHeaders.SET_COOKIE)
+                    .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
 
-        return authResponse;
+            logger.info("Login successful for user: {}", loginRequest.username());
+            return authResponse;
+        } catch (Exception e) {
+            logger.error("Error during user login: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> loginUserFallback(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {

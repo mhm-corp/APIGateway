@@ -30,7 +30,15 @@ public class AccountsService extends CommonService {
 
     @CircuitBreaker(name = "cb_accountRegistration", fallbackMethod = "accountRegistrationFallback")
     public ResponseEntity<String> accountRegistration(AccountInputInformation accountInputInformation, String endpoint) {
-        return executeRequest(accountInputInformation, endpoint, String.class, HttpMethod.POST, accountServiceUrl, restTemplate);
+        logger.debug("Starting account registration process at endpoint: {}", endpoint);
+        try {
+            ResponseEntity<String> response = executeRequest(accountInputInformation, endpoint, String.class, HttpMethod.POST, accountServiceUrl, restTemplate);
+            logger.info("Account registration completed with status: {}", response.getStatusCode());
+            return response;
+        } catch (Exception e) {
+            logger.error("Account registration failed: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> accountRegistrationFallback(AccountInputInformation accountInputInformation, String endpoint, Exception e) {
@@ -39,15 +47,23 @@ public class AccountsService extends CommonService {
 
     @CircuitBreaker(name = "cb_getAccountByAccountNumber", fallbackMethod = "getAccountByAccountNumberFallback")
     public ResponseEntity<AccountInformationByNumber> getAccountByAccountNumber(String accountNumber, String endpoint) {
-        String url = accountServiceUrl + endpoint + "/"+ accountNumber;
-        HttpEntity<Void> requestEntity = new HttpEntity<>(createHeaders());
+        logger.debug("Fetching account information for account number: {} at endpoint: {}", accountNumber, endpoint);
+        try {
+            String url = accountServiceUrl + endpoint + "/" + accountNumber;
+            HttpEntity<Void> requestEntity = new HttpEntity<>(createHeaders());
 
-        return restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                requestEntity,
-                AccountInformationByNumber.class
-        );
+            ResponseEntity<AccountInformationByNumber> response =  restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    requestEntity,
+                    AccountInformationByNumber.class
+            );
+            logger.info("Successfully retrieved account information for account: {}", accountNumber);
+            return response;
+        }catch (Exception e) {
+            logger.error("Error retrieving account information: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> getAccountByAccountNumberFallback(String accountNumber, String endpoint, Exception e) {

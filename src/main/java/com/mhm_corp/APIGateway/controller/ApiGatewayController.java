@@ -46,7 +46,10 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<String> userRegistration(@RequestBody UserInformation userInformation) {
-        return apiGatewayAuthService.userRegistration(userInformation, "/register");
+        logger.info("Starting user registration process for username: {}", userInformation.username());
+        ResponseEntity<String> response =  apiGatewayAuthService.userRegistration(userInformation, "/register");
+        logger.info("User registration completed with status: {}", response.getStatusCode());
+        return response;
     }
 
     @PostMapping("/login")
@@ -58,7 +61,10 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<Void> loginUser (@RequestBody LoginRequest loginRequest, HttpServletResponse response){
-        return apiGatewayAuthService.loginUser(loginRequest, response, "/login");
+        logger.info("Processing login request for username: {}", loginRequest.username());
+        ResponseEntity<Void> loginResponse = apiGatewayAuthService.loginUser(loginRequest, response, "/login");
+        logger.info("Login attempt completed with status: {}", loginResponse.getStatusCode());
+        return loginResponse;
     }
 
     @GetMapping("/me")
