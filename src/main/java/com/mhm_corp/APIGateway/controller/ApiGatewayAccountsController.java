@@ -58,10 +58,22 @@ public class ApiGatewayAccountsController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
 
+        logger.info("Received request to get account details for account number: {}", accountNumber);
+        logger.debug("Validating authentication tokens");
+
         boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
-        return (!isValidAuth)
-                ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-                : accountsService.getAccountByAccountNumber(accountNumber,"");
+        if (!isValidAuth) {
+            logger.warn("Authentication failed for account number: {}", accountNumber);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        logger.debug("Authentication successful, proceeding to fetch account details");
+        ResponseEntity<AccountInformationByNumber> result = accountsService.getAccountByAccountNumber(accountNumber, "");
+
+        logger.info("Completed processing request for account number: {} with status: {}",
+                accountNumber, result.getStatusCode());
+
+        return result;
     }
 
 }

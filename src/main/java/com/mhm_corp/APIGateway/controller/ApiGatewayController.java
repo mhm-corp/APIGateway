@@ -80,13 +80,18 @@ public class ApiGatewayController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
 
+        logger.info("Processing get user information request");
         boolean isValidToken = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
         if (!isValidToken) {
+            logger.warn("Invalid or expired token detected");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        return apiGatewayAuthService.getUserInformation(username, "/me");
+        logger.info("Retrieving information for user: {}", username);
+        ResponseEntity<UserData> userResponse = apiGatewayAuthService.getUserInformation(username, "/me");
+        logger.info("User information request completed with status: {}", userResponse.getStatusCode());
+        return userResponse;
     }
 
     @PostMapping("/refresh")
@@ -100,10 +105,16 @@ public class ApiGatewayController {
             @CookieValue(value = "accessToken", required = false) String accessToken,
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
+
+        logger.info("Processing token refresh request");
         if (refreshToken == null || accessToken == null) {
+            logger.warn("Missing refresh token or access token");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return apiGatewayAuthService.refreshTokenResponse (accessToken, refreshToken, response, "/refresh");
+        ResponseEntity<Void> refreshResponse = apiGatewayAuthService.refreshTokenResponse(accessToken, refreshToken, response, "/refresh");
+        logger.info("Token refresh completed with status: {}", refreshResponse.getStatusCode());
+        return refreshResponse;
+
     }
 }
