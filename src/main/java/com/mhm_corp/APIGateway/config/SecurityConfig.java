@@ -33,6 +33,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring security filter chain");
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(request -> request
@@ -44,6 +45,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> {
+                    logger.debug("Configuring OAuth2 resource server");
                     oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthentication));
                     oauth2.bearerTokenResolver(bearerTokenResolver());
                 })
@@ -53,6 +55,7 @@ public class SecurityConfig {
 
     @Bean
     BearerTokenResolver bearerTokenResolver() {
+        logger.debug("Creating bearer token resolver");
         return request -> {
             Cookie[] cookies = request.getCookies();
             if (cookies == null) {
@@ -60,16 +63,27 @@ public class SecurityConfig {
                 return null;
             }
 
+            logger.debug("Searching for access token in cookies");
             String token = Arrays.stream(cookies)
                     .filter(cookie -> NAME_TOKEN_IN_COOKIE.equals(cookie.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
                     .orElse(null);
 
-            if (token != null && keycloakService.validateToken(token)) {
+            if (token == null) {
+                logger.debug("Access token not found in cookies");
+                return null;
+            }
+
+            boolean isValid = keycloakService.validateToken(token);
+            logger.debug("Token validation result: {}", isValid);
+
+            if (isValid) {
+                logger.debug("Valid token found and returned");
                 return token;
             }
-            logger.debug("Invalid token");
+
+            logger.debug("Invalid token found");
             return null;
         };
     }

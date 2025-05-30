@@ -26,12 +26,16 @@ public class KeycloakService {
     private String issuer;
 
     public boolean validateToken(String token) {
+        logger.debug("Starting token validation process");
         try {
+            logger.debug("Parsing JWT token");
             SignedJWT signedJWT = SignedJWT.parse(token);
 
+            logger.debug("Loading public keys from: {}", jwksUrl);
             JWKSet publicKeys = JWKSet.load(new URL(jwksUrl));
 
             String kid = signedJWT.getHeader().getKeyID();
+            logger.debug("Searching for public key with kid: {}", kid);
             JWK jwk = publicKeys.getKeyByKeyId(kid);
 
             if (jwk == null) {
@@ -39,26 +43,38 @@ public class KeycloakService {
                 return false;
             }
 
+            logger.debug("Converting to RSA public key");
             RSAKey rsaKey = (RSAKey) jwk;
             RSAPublicKey publicKey = rsaKey.toRSAPublicKey();
 
+            logger.debug("Verifying token signature");
             JWSVerifier verifier = new RSASSAVerifier(publicKey);
             boolean signatureValid = signedJWT.verify(verifier);
 
             if (!signatureValid) {
+                logger.warn("Token signature verification failed");
                 return false;
             }
 
+            logger.debug("Validating token claims");
             JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
 
             if (!claims.getIssuer().equals(issuer)) {
+                logger.warn("Token issuer validation failed. Expected: {}, Found: {}", issuer, claims.getIssuer());
                 return false;
             }
 
-            return !(claims.getExpirationTime() == null || claims.getExpirationTime().before(new java.util.Date()));
+            boolean isExpired = claims.getExpirationTime() == null ||
+                    claims.getExpirationTime().before(new java.util.Date());
+            if (isExpired) {
+                logger.warn("Token has expired or has no expiration date");
+                return false;
+            }
 
+            logger.info("Token validation successful");
+            return true;
         } catch (Exception e) {
-            logger.error("Error validating token: ",e);
+            logger.error("Error validating token: {}", e.getMessage(), e);
             return false;
         }
     }
