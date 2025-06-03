@@ -4,6 +4,7 @@ package com.mhm_corp.APIGateway.service;
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
+import com.mhm_corp.APIGateway.service.fallback.FallBackAuthService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -17,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class ApiGatewayAuthService {
+public class ApiGatewayAuthService extends CommonService{
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAuthService.class);
     @Value("${auth.service.url}")
     private String authServiceUrl;
@@ -30,36 +31,17 @@ public class ApiGatewayAuthService {
         this.fallBackAuthService = fallBackAuthService;
     }
 
-    private <T, R> ResponseEntity<R> executeRequest(T request, String endpoint, Class<R> responseType, HttpMethod method) {
-        String url = authServiceUrl + endpoint;
-        HttpEntity<T> requestEntity = new HttpEntity<>(request, createHeaders());
-
-        ResponseEntity<R> response = restTemplate.exchange(
-                url,
-                method,
-                requestEntity,
-                responseType
-        );
-
-        return (ResponseEntity<R>) createResponseEntity(response);
-    }
-
-    private HttpHeaders createHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
-    }
-
-    private ResponseEntity<?> createResponseEntity(ResponseEntity<?> response) {
-        return ResponseEntity
-                .status(response.getStatusCode())
-                .headers(response.getHeaders())
-                .body(response.getBody());
-    }
-
     @CircuitBreaker(name = "cb_userRegistration", fallbackMethod = "userRegistrationFallback")
     public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint) {
-        return executeRequest(userInformation, endpoint, String.class, HttpMethod.POST);
+        logger.debug("Attempting to register user with endpoint: {}", endpoint);
+        try {
+            ResponseEntity<String> response = executeRequest(userInformation, endpoint, String.class, HttpMethod.POST, authServiceUrl, restTemplate);
+            logger.info("User registration successful for username: {}", userInformation.username());
+            return response;
+        } catch (Exception e) {
+            logger.error("Error during user registration: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
@@ -68,13 +50,20 @@ public class ApiGatewayAuthService {
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
     public ResponseEntity<Void> loginUser(LoginRequest loginRequest, HttpServletResponse response, String endpoint) {
-        ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST);
+        logger.debug("Processing login request at endpoint: {}", endpoint);
+        try {
+            ResponseEntity<Void> authResponse = executeRequest(loginRequest, endpoint, Void.class, HttpMethod.POST, authServiceUrl, restTemplate);
 
-        HttpHeaders headers = authResponse.getHeaders();
-        headers.getOrEmpty(HttpHeaders.SET_COOKIE)
-                .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
+            HttpHeaders headers = authResponse.getHeaders();
+            headers.getOrEmpty(HttpHeaders.SET_COOKIE)
+                    .forEach(cookie -> response.addHeader(HttpHeaders.SET_COOKIE, cookie));
 
-        return authResponse;
+            logger.info("Login successful for user: {}", loginRequest.username());
+            return authResponse;
+        } catch (Exception e) {
+            logger.error("Error during user login: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private ResponseEntity<String> loginUserFallback(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {

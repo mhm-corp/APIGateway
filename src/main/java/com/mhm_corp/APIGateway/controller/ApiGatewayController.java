@@ -5,6 +5,7 @@ import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
 import com.mhm_corp.APIGateway.service.ApiGatewayAuthService;
+import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
 import com.mhm_corp.APIGateway.service.external.KeycloakService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,15 +25,16 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "The API Gateway", description = "REST API allow access to other services")
 public class ApiGatewayController {
-
     private static final Logger logger = LoggerFactory.getLogger(ApiGatewayController.class);
 
     private final ApiGatewayAuthService apiGatewayAuthService;
     private final KeycloakService keycloakService;
+    private final ValidateAutTokenService validateAutTokenService;
 
-    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService) {
+    public ApiGatewayController(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService, ValidateAutTokenService validateAutTokenService) {
         this.apiGatewayAuthService = apiGatewayAuthService;
         this.keycloakService = keycloakService;
+        this.validateAutTokenService = validateAutTokenService;
     }
 
     @PostMapping("/register")
@@ -44,7 +46,10 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<String> userRegistration(@RequestBody UserInformation userInformation) {
-        return apiGatewayAuthService.userRegistration(userInformation, "/register");
+        logger.info("Starting user registration process for username: {}", userInformation.username());
+        ResponseEntity<String> response =  apiGatewayAuthService.userRegistration(userInformation, "/register");
+        logger.info("User registration completed with status: {}", response.getStatusCode());
+        return response;
     }
 
     @PostMapping("/login")
@@ -56,7 +61,10 @@ public class ApiGatewayController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<Void> loginUser (@RequestBody LoginRequest loginRequest, HttpServletResponse response){
-        return apiGatewayAuthService.loginUser(loginRequest, response, "/login");
+        logger.info("Processing login request for username: {}", loginRequest.username());
+        ResponseEntity<Void> loginResponse = apiGatewayAuthService.loginUser(loginRequest, response, "/login");
+        logger.info("Login attempt completed with status: {}", loginResponse.getStatusCode());
+        return loginResponse;
     }
 
     @GetMapping("/me")
@@ -72,26 +80,18 @@ public class ApiGatewayController {
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
 
-        if (accessToken == null) {
+        logger.info("Processing get user information request");
+        boolean isValidToken = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        if (!isValidToken) {
+            logger.warn("Invalid or expired token detected");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        if (!keycloakService.validateToken(accessToken)) {
-            if (refreshToken != null) {
-                ResponseEntity<Void> refreshResponse = refreshTokenResponse(accessToken, refreshToken, response);
-                if (refreshResponse.getStatusCode() == HttpStatus.OK) {
-                    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                    String username = authentication.getName();
-                    return apiGatewayAuthService.getUserInformation(username, "/me");
-                }
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-
-        return apiGatewayAuthService.getUserInformation(username, "/me");
+        logger.info("Retrieving information for user: {}", username);
+        ResponseEntity<UserData> userResponse = apiGatewayAuthService.getUserInformation(username, "/me");
+        logger.info("User information request completed with status: {}", userResponse.getStatusCode());
+        return userResponse;
     }
 
     @PostMapping("/refresh")
@@ -105,10 +105,16 @@ public class ApiGatewayController {
             @CookieValue(value = "accessToken", required = false) String accessToken,
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
+
+        logger.info("Processing token refresh request");
         if (refreshToken == null || accessToken == null) {
+            logger.warn("Missing refresh token or access token");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        return apiGatewayAuthService.refreshTokenResponse (accessToken, refreshToken, response, "/refresh");
+        ResponseEntity<Void> refreshResponse = apiGatewayAuthService.refreshTokenResponse(accessToken, refreshToken, response, "/refresh");
+        logger.info("Token refresh completed with status: {}", refreshResponse.getStatusCode());
+        return refreshResponse;
+
     }
 }
