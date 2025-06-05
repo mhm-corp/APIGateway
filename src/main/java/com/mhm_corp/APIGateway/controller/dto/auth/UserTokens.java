@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class TokensUser {
+public class UserTokens {
     private String accessToken;
     private String refreshToken;
     private String expiresIn;

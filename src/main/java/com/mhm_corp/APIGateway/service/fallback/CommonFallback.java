@@ -1,8 +1,5 @@
 package com.mhm_corp.APIGateway.service.fallback;
 
-import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
-import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,14 +10,14 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
 @Service
-public class FallBackAuthService {
-    private static final Logger logger = LoggerFactory.getLogger(FallBackAuthService.class);
+public class CommonFallback {
+    private static final Logger logger = LoggerFactory.getLogger(CommonFallback.class);
     private static final String CONNECTION_ERROR_KEYCLOAK = "/protocol/openid-connect/token";
     private static final String KEYCLOAK_ERROR_MESSAGE = "Keycloak authentication service is experiencing issues. Please try again later.";
-
     private static final String SERVICE_UNAVAILABLE_MESSAGE = "The %s service is currently unavailable. Please try again later.";
 
-    private ResponseEntity<String> handleException(Exception e, String operation) {
+
+    public ResponseEntity<String> handleException(Exception e, String operation) {
         if (e instanceof ResourceAccessException) {
             return handleResourceAccessException((ResourceAccessException) e, operation);
         }
@@ -81,21 +78,4 @@ public class FallBackAuthService {
                 .body(String.format(SERVICE_UNAVAILABLE_MESSAGE, operation));
     }
 
-
-    public ResponseEntity<String> userRegistration(UserInformation userInformation, String endpoint, Exception e) {
-        return handleException(e, endpoint);
-    }
-
-    public ResponseEntity<String> loginUser(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {
-        return handleException(e, endpoint);
-    }
-
-
-    public ResponseEntity<String> getUserInformation(String username, String endpoint, Exception e) {
-        return handleException(e, endpoint);
-    }
-
-    public ResponseEntity<String> refreshTokenResponse(String accessToken, String refreshToken, HttpServletResponse response, String endpoint, Exception e) {
-        return handleException(e, endpoint);
-    }
 }

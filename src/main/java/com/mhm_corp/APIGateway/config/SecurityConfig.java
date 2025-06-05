@@ -21,13 +21,13 @@ import java.util.Arrays;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
-    private JwtAuthentication jwtAuthentication;
+    private AuthenticationJwt authenticationJwt;
     private KeycloakService keycloakService;
 
     private static final String NAME_TOKEN_IN_COOKIE = "accessToken";
 
-    public SecurityConfig(JwtAuthentication jwtAuthentication, KeycloakService keycloakService) {
-        this.jwtAuthentication = jwtAuthentication;
+    public SecurityConfig(AuthenticationJwt authenticationJwt, KeycloakService keycloakService) {
+        this.authenticationJwt = authenticationJwt;
         this.keycloakService = keycloakService;
     }
 
@@ -42,11 +42,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/gateway/register").permitAll()
                         .requestMatchers("/api/gateway/login").permitAll()
                         .requestMatchers("/api/gateway/refresh").permitAll()
+                        .requestMatchers("/api/gateway/loans").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> {
                     logger.debug("Configuring OAuth2 resource server");
-                    oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthentication));
+                    oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(authenticationJwt));
                     oauth2.bearerTokenResolver(bearerTokenResolver());
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -2,7 +2,7 @@ package com.mhm_corp.APIGateway.service;
 
 import com.mhm_corp.APIGateway.controller.dto.account.AccountInformationByNumber;
 import com.mhm_corp.APIGateway.controller.dto.account.AccountInputInformation;
-import com.mhm_corp.APIGateway.service.fallback.FallBackAccountsService;
+import com.mhm_corp.APIGateway.service.fallback.AccountsFallback;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +20,10 @@ public class AccountsService extends CommonService {
     @Value("${account.service.url}")
     private String accountServiceUrl;
 
-    private final FallBackAccountsService fallBackAccountService;
+    private final AccountsFallback fallBackAccountService;
     private final RestTemplate restTemplate;
 
-    public AccountsService(FallBackAccountsService fallBackAccountService, RestTemplate restTemplate) {
+    public AccountsService(AccountsFallback fallBackAccountService, RestTemplate restTemplate) {
         this.fallBackAccountService = fallBackAccountService;
         this.restTemplate = restTemplate;
     }

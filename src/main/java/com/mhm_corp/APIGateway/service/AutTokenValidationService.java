@@ -9,13 +9,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ValidateAutTokenService {
-    private static final Logger logger = LoggerFactory.getLogger(ValidateAutTokenService.class);
-    private final ApiGatewayAuthService apiGatewayAuthService;
+public class AutTokenValidationService {
+    private static final Logger logger = LoggerFactory.getLogger(AutTokenValidationService.class);
+    private final AuthService authService;
     private final KeycloakService keycloakService;
 
-    public ValidateAutTokenService(ApiGatewayAuthService apiGatewayAuthService, KeycloakService keycloakService) {
-        this.apiGatewayAuthService = apiGatewayAuthService;
+    public AutTokenValidationService(AuthService authService, KeycloakService keycloakService) {
+        this.authService = authService;
         this.keycloakService = keycloakService;
     }
 
@@ -33,7 +33,7 @@ public class ValidateAutTokenService {
         }
 
         logger.info("Access token expired, attempting token refresh");
-        ResponseEntity<Void> refreshResponse = apiGatewayAuthService.refreshTokenResponse(
+        ResponseEntity<Void> refreshResponse = authService.refreshTokenResponse(
                 accessToken, refreshToken, response, "/refresh");
         boolean isValid = refreshResponse.getStatusCode() == HttpStatus.OK;
         logger.info("Token refresh completed. Success: {}", isValid);

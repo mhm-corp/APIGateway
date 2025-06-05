@@ -20,8 +20,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 @Component
-public class JwtAuthentication implements Converter<Jwt, AbstractAuthenticationToken> {
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthentication.class);
+public class AuthenticationJwt implements Converter<Jwt, AbstractAuthenticationToken> {
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationJwt.class);
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
     @Value("${jwt.auth.converter.principal-attribute}")

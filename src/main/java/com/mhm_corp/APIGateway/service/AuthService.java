@@ -4,7 +4,7 @@ package com.mhm_corp.APIGateway.service;
 import com.mhm_corp.APIGateway.controller.dto.auth.LoginRequest;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserData;
 import com.mhm_corp.APIGateway.controller.dto.auth.UserInformation;
-import com.mhm_corp.APIGateway.service.fallback.FallBackAuthService;
+import com.mhm_corp.APIGateway.service.fallback.AuthFallback;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -18,17 +18,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class ApiGatewayAuthService extends CommonService{
-    private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAuthService.class);
+public class AuthService extends CommonService{
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     @Value("${auth.service.url}")
     private String authServiceUrl;
 
     private final RestTemplate restTemplate;
-    private final FallBackAuthService fallBackAuthService;
+    private final AuthFallback authFallback;
 
-    public ApiGatewayAuthService(RestTemplate restTemplate, FallBackAuthService fallBackAuthService) {
+    public AuthService(RestTemplate restTemplate, AuthFallback authFallback) {
         this.restTemplate = restTemplate;
-        this.fallBackAuthService = fallBackAuthService;
+        this.authFallback = authFallback;
     }
 
     @CircuitBreaker(name = "cb_userRegistration", fallbackMethod = "userRegistrationFallback")
@@ -45,7 +45,7 @@ public class ApiGatewayAuthService extends CommonService{
     }
 
     private ResponseEntity<String> userRegistrationFallback(UserInformation userInformation, String endpoint, Exception e) {
-        return fallBackAuthService.userRegistration(userInformation,endpoint,e);
+        return authFallback.userRegistration(userInformation,endpoint,e);
     }
 
     @CircuitBreaker(name = "cb_loginUser", fallbackMethod = "loginUserFallback")
@@ -67,7 +67,7 @@ public class ApiGatewayAuthService extends CommonService{
     }
 
     private ResponseEntity<String> loginUserFallback(LoginRequest loginRequest, HttpServletResponse response, String endpoint, Exception e) {
-        return fallBackAuthService.loginUser(loginRequest,response,endpoint,e);
+        return authFallback.loginUser(loginRequest,response,endpoint,e);
     }
 
     @CircuitBreaker(name = "cb_getUserInformation", fallbackMethod = "getUserInformationFallback")
@@ -84,7 +84,7 @@ public class ApiGatewayAuthService extends CommonService{
     }
 
     private ResponseEntity<String> getUserInformationFallback(String username, String endpoint, Exception e) {
-        return fallBackAuthService.getUserInformation(username, endpoint, e);
+        return authFallback.getUserInformation(username, endpoint, e);
     }
 
     @CircuitBreaker(name = "cb_refreshTokenResponse", fallbackMethod = "refreshTokenResponseFallback")
@@ -115,6 +115,6 @@ public class ApiGatewayAuthService extends CommonService{
     private ResponseEntity<String> refreshTokenResponseFallback(
             String accessToken, String refreshToken,
             HttpServletResponse response, String endpoint, Exception e) {
-        return fallBackAuthService.refreshTokenResponse(accessToken, refreshToken, response, endpoint, e);
+        return authFallback.refreshTokenResponse(accessToken, refreshToken, response, endpoint, e);
     }
 }

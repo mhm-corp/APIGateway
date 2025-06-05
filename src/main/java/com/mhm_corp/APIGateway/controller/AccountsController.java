@@ -3,7 +3,7 @@ package com.mhm_corp.APIGateway.controller;
 import com.mhm_corp.APIGateway.controller.dto.account.AccountInformationByNumber;
 import com.mhm_corp.APIGateway.controller.dto.account.AccountInputInformation;
 import com.mhm_corp.APIGateway.service.AccountsService;
-import com.mhm_corp.APIGateway.service.ValidateAutTokenService;
+import com.mhm_corp.APIGateway.service.AutTokenValidationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -20,14 +20,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/gateway/accounts")
 
 @Tag(name = "The API Gateway Accounts", description = "REST API allow access to accounts")
-public class ApiGatewayAccountsController {
-    private static final Logger logger = LoggerFactory.getLogger(ApiGatewayAccountsController.class);
+public class AccountsController {
+    private static final Logger logger = LoggerFactory.getLogger(AccountsController.class);
     private final AccountsService accountsService;
-    private final ValidateAutTokenService validateAutTokenService;
+    private final AutTokenValidationService autTokenValidationService;
 
-    public ApiGatewayAccountsController(AccountsService accountsService, ValidateAutTokenService validateAutTokenService) {
+    public AccountsController(AccountsService accountsService, AutTokenValidationService autTokenValidationService) {
         this.accountsService = accountsService;
-        this.validateAutTokenService = validateAutTokenService;
+        this.autTokenValidationService = autTokenValidationService;
     }
 
 
@@ -38,7 +38,7 @@ public class ApiGatewayAccountsController {
             @CookieValue(value = "accessToken", required = false) String accessToken,
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response){
-        boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        boolean isValidAuth = autTokenValidationService.validateAuthenticationWithToken(accessToken, refreshToken, response);
         return (!isValidAuth)
                 ? ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
                 : accountsService.accountRegistration(accountInputInformation,"");
@@ -61,7 +61,7 @@ public class ApiGatewayAccountsController {
         logger.info("Received request to get account details for account number: {}", accountNumber);
         logger.debug("Validating authentication tokens");
 
-        boolean isValidAuth = validateAutTokenService.validateAuthenticationWithToken(accessToken, refreshToken, response);
+        boolean isValidAuth = autTokenValidationService.validateAuthenticationWithToken(accessToken, refreshToken, response);
         if (!isValidAuth) {
             logger.warn("Authentication failed for account number: {}", accountNumber);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
