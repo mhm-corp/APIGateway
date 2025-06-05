@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/gateway/login").permitAll()
                         .requestMatchers("/api/gateway/refresh").permitAll()
                         .requestMatchers("/api/gateway/loans").permitAll()
+                        .requestMatchers("/api/gateway/loans/*/pay").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> {

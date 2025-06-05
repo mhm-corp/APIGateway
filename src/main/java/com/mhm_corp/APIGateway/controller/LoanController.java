@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,4 +55,26 @@ public class LoanController {
         }
     }
 
+
+    @PostMapping("/{id}/pay")
+    @Operation(summary = "Pay a loan installment")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment processed successfully"),
+            @ApiResponse(responseCode = "404", description = "Loan not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid payment request"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<String> payLoan(@PathVariable Long id) {
+        logger.info("Received loan payment request for loan ID: {}", id);
+        try {
+            String url = "/{id}/pay".replace("{id}", id.toString());
+            ResponseEntity<String> result = loanService.payLoan(id,url);
+            logger.info("Completed processing payment for loan ID: {} with status: {}", id, result.getStatusCode());
+            return result;
+        } catch (Exception e) {
+            logger.error("Error processing payment for loan ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing loan registration");
+        }
+    }
 }

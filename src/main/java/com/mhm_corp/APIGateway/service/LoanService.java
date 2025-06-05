@@ -42,4 +42,24 @@ public class LoanService  extends CommonService {
     private ResponseEntity<String> loanRegistrationFallback(InputDataLoan inputDataLoan, String endpoint, Exception e) {
         return loanFallback.loanRegistration(inputDataLoan,endpoint,e);
     }
+
+    @CircuitBreaker(name = "cb_payLoan", fallbackMethod = "payLoanFallback")
+    public ResponseEntity<String> payLoan(Long id, String endpoint) {
+        logger.info("Processing loan payment for ID: {}", id);
+        try {
+            String url = loanServiceUrl + endpoint;
+            logger.debug("Making request to URL: {}", url);
+            ResponseEntity<String> response = executeRequest(id, endpoint, String.class, HttpMethod.POST, url, restTemplate);
+            logger.info("Loan payment completed for ID: {} with status: {}", id, response.getStatusCode());
+            return response;
+        } catch (Exception e) {
+            logger.error("Error processing loan payment for ID {}: {}", id, e.getMessage());
+            throw e;
+        }
+    }
+
+    private ResponseEntity<String> payLoanFallback(Long id, String endpoint, Exception e) {
+        return loanFallback.payLoanFallback(id,endpoint,e);
+    }
+
 }

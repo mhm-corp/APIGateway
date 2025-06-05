@@ -13,4 +13,8 @@ public class LoanFallback extends CommonFallback {
     public ResponseEntity<String> loanRegistration(InputDataLoan inputDataLoan, String endpoint, Exception e) {
         return handleException(e, endpoint);
     }
+
+    public ResponseEntity<String> payLoanFallback(Long id, String endpoint, Exception e) {
+        return handleException(e, endpoint);
+    }
 }
