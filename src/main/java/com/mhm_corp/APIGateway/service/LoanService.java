@@ -49,7 +49,7 @@ public class LoanService  extends CommonService {
         try {
             String url = loanServiceUrl + endpoint;
             logger.debug("Making request to URL: {}", url);
-            ResponseEntity<String> response = executeRequest(id, endpoint, String.class, HttpMethod.POST, url, restTemplate);
+            ResponseEntity<String> response = executeRequest(id, "", String.class, HttpMethod.POST, url, restTemplate);
             logger.info("Loan payment completed for ID: {} with status: {}", id, response.getStatusCode());
             return response;
         } catch (Exception e) {
